@@ -1,0 +1,9 @@
+{
+    "frame_skip": 5,
+    "similarity_threshold": 0.45,
+    "exit_frame_threshold": 30,
+    "camera_source": "0",
+    "yolo_model": "yolov8n.pt",
+    "db_path": "database/face_tracker.db",
+    "log_dir": "logs"
+}

@@ -1,0 +1,18 @@
+CREATE_FACES_TABLE = """
+CREATE TABLE IF NOT EXISTS faces (
+    id TEXT PRIMARY KEY,
+    embedding BLOB NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+CREATE_EVENTS_TABLE = """
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    face_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    image_path TEXT,
+    FOREIGN KEY(face_id) REFERENCES faces(id)
+);
+"""

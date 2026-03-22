@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+
+# Models (large files — download via ultralytics/insightface on first run)
+*.pt
+*.onnx
+*.bin
+
+# Sample videos (large)
+sample/
+
+# Database (generated at runtime)
+database/face_tracker.db
+
+# Logs & generated images (keep folder structure, ignore content)
+logs/events.log
+logs/entries/
+logs/exits/
+logs/registereds/
+logs/entrys/
+out.log
+
+# Scripts (dev utility only)
+scripts/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

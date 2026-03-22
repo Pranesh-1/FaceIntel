@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Katomaran Face Intelligence</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg: #050508;
+            --surface: rgba(18,18,28,0.7);
+            --border: rgba(255,255,255,0.07);
+            --border-hover: rgba(255,255,255,0.15);
+            --text: #e8eaf0;
+            --muted: #6b7280;
+            --accent: #64ffda;
+            --accent-dim: rgba(100,255,218,0.15);
+            --green: #22c55e;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --pink: #ec4899;
+            --glow1: #4f46e5;
+            --glow2: #7c3aed;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Animated blobs ─────────────────────────────────────────── */
+        .blob {
+            position: fixed; border-radius: 50%; filter: blur(120px);
+            z-index: 0; pointer-events: none; opacity: 0.35;
+            animation: drift 25s ease-in-out infinite;
+        }
+        .blob-1 { width:600px; height:600px; background:var(--glow1); top:-200px; left:-150px; }
+        .blob-2 { width:500px; height:500px; background:var(--glow2); bottom:-200px; right:-100px; animation-delay:-12s; }
+        @keyframes drift {
+            0%,100% { transform:translate(0,0) scale(1); }
+            33%      { transform:translate(40px,-60px) scale(1.08); }
+            66%      { transform:translate(-30px,30px) scale(0.95); }
+        }
+
+        /* ── Navbar ─────────────────────────────────────────────────── */
+        .navbar {
+            position: relative; z-index: 10;
+            padding: 0 2rem;
+            height: 58px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5,5,8,0.8);
+            backdrop-filter: blur(20px);
+            flex-shrink: 0;
+        }
+        .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.1rem; font-weight: 700; letter-spacing: -0.3px;
+        }
+        .brand-dot {
+            width: 9px; height: 9px; border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%,100% { box-shadow: 0 0 6px var(--accent); }
+            50%      { box-shadow: 0 0 16px var(--accent), 0 0 30px rgba(100,255,218,0.3); }
+        }
+
+        /* System health row */
+        .health-row {
+            display: flex; align-items: center; gap: 18px;
+        }
+        .health-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; font-weight: 600; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .health-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+        }
+        .health-dot.warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+        .health-dot.err  { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+
+        /* ── Main layout ─────────────────────────────────────────────── */
+        .layout {
+            position: relative; z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            grid-template-rows: 1fr;
+            gap: 16px;
+            padding: 16px;
+            height: calc(100vh - 58px);
+            overflow: hidden;
+        }
+
+        /* ── Panel base ─────────────────────────────────────────────── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .panel-title {
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--muted);
+        }
+        .panel-badge {
+            font-size: 0.65rem; font-weight: 600; padding: 2px 8px;
+            border-radius: 20px; background: rgba(255,255,255,0.06);
+            color: var(--muted); border: 1px solid var(--border);
+        }
+
+        /* ── Left column: video ─────────────────────────────────────── */
+        .video-wrap {
+            flex: 1;
+            background: #000;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .video-wrap img {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+
+        /* ── Right column ───────────────────────────────────────────── */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* ── Stat grid ──────────────────────────────────────────────── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 12px;
+            flex-shrink: 0;
+        }
+        .stat {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 10px;
+            display: flex; flex-direction: column; gap: 4px;
+            transition: border-color 0.2s, background 0.2s;
+            cursor: default;
+        }
+        .stat:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
+        .stat-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+        .stat-value {
+            font-size: 1.6rem; font-weight: 800; color: #fff;
+            font-family: var(--mono);
+            transition: color 0.4s;
+        }
+        .stat-value.accent { color: var(--accent); }
+        .stat-value.green  { color: var(--green); }
+        .stat-sub { font-size: 0.62rem; color: var(--muted); }
+
+        /* tooltip */
+        [data-tip] { position: relative; }
+        [data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute; bottom: calc(100% + 8px); left: 50%;
+            transform: translateX(-50%);
+            background: #1e1e2e; border: 1px solid var(--border);
+            color: var(--text); font-size: 0.7rem; white-space: nowrap;
+            padding: 4px 10px; border-radius: 8px; pointer-events: none;
+            z-index: 100;
+        }
+
+        /* ── Active tracks ──────────────────────────────────────────── */
+        .tracks-panel { 
+            flex: 0 0 220px; 
+            display: flex;
+            flex-direction: column;
+        }
+        .tracks-list {
+            overflow-y: auto;
+            flex: 1;
+            padding: 8px;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .track-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 9px 12px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+        .track-id { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; }
+        .track-meta { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+        .track-badge {
+            font-size: 0.65rem; font-weight: 700; padding: 3px 9px;
+            border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        /* ── Events ─────────────────────────────────────────────── */
+        .events-panel {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .events-list {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .event-card {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            transition: border-color 0.2s;
+            cursor: default;
+            position: relative;
+        }
+        .event-card:hover { border-color: var(--border-hover); }
+        .event-thumb {
+            width: 36px; height: 36px; border-radius: 8px;
+            object-fit: cover; border: 1px solid rgba(255,255,255,0.1);
+            background: #111; flex-shrink: 0;
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        .event-thumb:hover { transform: scale(1.08); }
+
+        /* hover zoom overlay */
+        .event-thumb-wrap { position: relative; flex-shrink: 0; }
+        .event-thumb-wrap:hover .thumb-preview {
+            display: block;
+        }
+        .thumb-preview {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px); left: 50%;
+            transform: translateX(-50%);
+            width: 120px; height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border-hover);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+            z-index: 200;
+        }
+        .event-no-thumb {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px dashed var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; flex-shrink: 0;
+        }
+        .event-info { flex: 1; min-width: 0; }
+        .event-id { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; }
+        .event-time { font-size: 0.63rem; color: var(--muted); margin-top: 1px; }
+        .event-badge {
+            font-size: 0.62rem; font-weight: 700; padding: 3px 8px;
+            border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        /* ── System meta ─────────────────────────────────────────────── */
+        .meta-panel { flex-shrink: 0; }
+        .meta-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+            padding: 10px 14px;
+        }
+        .meta-row {
+            display: flex; flex-direction: column; gap: 2px;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .meta-row:nth-last-child(-n+2) { border-bottom: none; }
+        .meta-label { font-size: 0.6rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        .meta-value { font-size: 0.75rem; font-weight: 600; color: var(--accent); }
+        .meta-value.pink { color: var(--pink); }
+
+        /* ── Scrollbar ───────────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+        /* ── Animations ──────────────────────────────────────────────── */
+        @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+        @keyframes slideIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+
+        .empty-msg {
+            text-align: center; padding: 20px;
+            font-size: 0.8rem; color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- ── Navbar ──────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+    <div class="brand">
+        <div class="brand-dot"></div>
+        Katomaran Intelligence
+    </div>
+    <div class="health-row">
+        <div class="health-item"><div class="health-dot" id="hc-camera"></div>Camera</div>
+        <div class="health-item"><div class="health-dot" id="hc-model"></div>Model</div>
+        <div class="health-item"><div class="health-dot" id="hc-db"></div>Database</div>
+    </div>
+</nav>
+
+<!-- ── Main layout ─────────────────────────────────────────────────────── -->
+<div class="layout">
+
+    <!-- LEFT: Live video -->
+    <div class="panel video-panel">
+        <div class="panel-header" style="justify-content: space-between;">
+            <span class="panel-title">Live Camera Feed</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <select id="video-selector" style="background: rgba(0,0,0,0.5); color: #fff; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.7rem;">
+                    <option value="">Loading...</option>
+                </select>
+                <span class="panel-badge" id="feed-status">MP4 · STREAMING</span>
+            </div>
+        </div>
+        <div class="video-wrap">
+            <img src="/video_feed" alt="Live Feed" id="video-stream">
+        </div>
+    </div>
+
+    <!-- RIGHT: Sidebar -->
+    <div class="sidebar">
+
+        <!-- Stats -->
+        <div class="panel">
+            <div class="stat-grid">
+                <div class="stat" data-tip="Processed frames per second (EMA smoothed)">
+                    <div class="stat-label">FPS</div>
+                    <div class="stat-value accent" id="stat-fps">--</div>
+                </div>
+                <div class="stat" data-tip="Total inference time per frame (YOLO + RetinaFace)">
+                    <div class="stat-label">Latency</div>
+                    <div class="stat-value" id="stat-latency">--</div>
+                    <div class="stat-sub">ms</div>
+                </div>
+                <div class="stat" data-tip="Unique faces seen in this session">
+                    <div class="stat-label">Session</div>
+                    <div class="stat-value green" id="stat-session">--</div>
+                </div>
+                <div class="stat" data-tip="Total unique visitors ever registered in DB">
+                    <div class="stat-label">Total</div>
+                    <div class="stat-value" id="stat-total">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Tracks -->
+        <div class="panel tracks-panel">
+            <div class="panel-header">
+                <span class="panel-title">Active Tracks</span>
+                <span class="panel-badge" id="track-count">0 faces</span>
+            </div>
+            <div class="tracks-list" id="tracks-list">
+                <div class="empty-msg">No active targets...</div>
+            </div>
+        </div>
+
+        <!-- Lifecycle Events -->
+        <div class="panel events-panel">
+            <div class="panel-header">
+                <span class="panel-title">Lifecycle Events</span>
+                <span class="panel-badge" id="event-count">0 events</span>
+            </div>
+            <div class="events-list" id="events-list">
+                <div class="empty-msg">Waiting for events...</div>
+            </div>
+        </div>
+
+        <!-- System Metadata -->
+        <div class="panel meta-panel">
+            <div class="panel-header">
+                <span class="panel-title">System Metadata</span>
+            </div>
+            <div class="meta-grid">
+                <div class="meta-row">
+                    <span class="meta-label">Detector</span>
+                    <span class="meta-value">YOLOv8 + ByteTrack</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Recognizer</span>
+                    <span class="meta-value pink">InsightFace ArcFace</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Database</span>
+                    <span class="meta-value">SQLite</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Execution</span>
+                    <span class="meta-value">CPU · Hybrid</span>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /sidebar -->
+</div><!-- /layout -->
+
+<script>
+// ── Interpolated display numbers ──────────────────────────────────────────
+const displayed = { fps: 0, latency: 0, session: 0, total: 0 };
+const targets   = { fps: 0, latency: 0, session: 0, total: 0 };
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function tickNumbers() {
+    const speed = 0.15;
+    let changed = false;
+    for (const k of Object.keys(displayed)) {
+        if (Math.abs(displayed[k] - targets[k]) > 0.5) {
+            displayed[k] = lerp(displayed[k], targets[k], speed);
+            changed = true;
+        } else {
+            displayed[k] = targets[k];
+        }
+    }
+    if (changed) {
+        document.getElementById('stat-fps').textContent     = Math.round(displayed.fps);
+        document.getElementById('stat-latency').textContent = Math.round(displayed.latency);
+        document.getElementById('stat-session').textContent = Math.round(displayed.session);
+        document.getElementById('stat-total').textContent   = Math.round(displayed.total);
+    }
+    requestAnimationFrame(tickNumbers);
+}
+requestAnimationFrame(tickNumbers);
+
+// ── Event color map ───────────────────────────────────────────────────────
+const EVENT_COLORS = {
+    'ENTRY':        { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  emoji: '🟢' },
+    'EXIT':         { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  emoji: '🔴' },
+    'REGISTERED':   { color: '#ec4899', bg: 'rgba(236,72,153,0.12)', emoji: '🆕' },
+    'RECOGNISED':   { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', emoji: '🧠' },
+    'RE-ENTRY':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', emoji: '🔁' },
+};
+function evStyle(type) {
+    return EVENT_COLORS[type] || { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', emoji: '•' };
+}
+
+// ── Track badge color ─────────────────────────────────────────────────────
+function trackStyle(color) {
+    const map = {
+        '#00ff00': { color:'#22c55e', bg:'rgba(34,197,94,0.12)' },
+        '#ffff00': { color:'#f59e0b', bg:'rgba(245,158,11,0.12)' },
+        '#ffa500': { color:'#f97316', bg:'rgba(249,115,22,0.12)' },
+        '#ff3333': { color:'#ef4444', bg:'rgba(239,68,68,0.12)' },
+    };
+    return map[color] || { color:'#6b7280', bg:'rgba(107,114,128,0.12)' };
+}
+
+// ── Similarity tooltip label ──────────────────────────────────────────────
+function simLabel(simStr) {
+    if (simStr === '--') return 'Validating identity...';
+    const v = parseFloat(simStr);
+    if (v >= 0.80) return `${simStr} — Perfect Match`;
+    if (v >= 0.65) return `${simStr} — Strong Match`;
+    if (v >= 0.50) return `${simStr} — Weak Match`;
+    return `${simStr} — Low Confidence`;
+}
+
+// ── Render active tracks ──────────────────────────────────────────────────
+function renderTracks(faces) {
+    const list = document.getElementById('tracks-list');
+    document.getElementById('track-count').textContent = faces.length + ' face' + (faces.length !== 1 ? 's' : '');
+
+    if (!faces.length) {
+        list.innerHTML = '<div class="empty-msg">No active targets...</div>';
+        return;
+    }
+
+    const html = faces.map(f => {
+        const ts = trackStyle(f.color);
+        const isNew = !f.id || f.id === 'Analyzing...';
+        const statusText = isNew ? f.status : 'Recognized';
+        const tip = simLabel(f.sim);
+        return `
+        <div class="track-row">
+            <div>
+                <div class="track-id">${isNew ? '⏳ Unknown' : '👤 ' + f.id}</div>
+                <div class="track-meta" data-tip="${tip}">Sim: ${f.sim}</div>
+            </div>
+            <div class="track-badge" style="color:${ts.color};background:${ts.bg};border:1px solid ${ts.color}33;">
+                ${statusText}
+            </div>
+        </div>`;
+    }).join('');
+    list.innerHTML = html;
+}
+
+// ── Render event feed ─────────────────────────────────────────────────────
+let lastEventsStr = "";
+function renderEvents(events) {
+    const list = document.getElementById('events-list');
+    document.getElementById('event-count').textContent = events.length + ' event' + (events.length !== 1 ? 's' : '');
+
+    const currentStr = JSON.stringify(events);
+    if (currentStr === lastEventsStr) return; // Prevent DOM repaints and scroll-snapping!
+    lastEventsStr = currentStr;
+
+    if (!events.length) {
+        list.innerHTML = '<div class="empty-msg">Waiting for events...</div>';
+        return;
+    }
+
+    const html = events.map(ev => {
+        const st = evStyle(ev.type);
+        const imgHtml = ev.image
+            ? `<div class="event-thumb-wrap">
+                 <img src="${ev.image}" class="event-thumb" alt="face">
+                 <img src="${ev.image}" class="thumb-preview" alt="preview">
+               </div>`
+            : `<div class="event-no-thumb">${st.emoji}</div>`;
+
+        return `
+        <div class="event-card">
+            ${imgHtml}
+            <div class="event-info">
+                <div class="event-id">👤 ${ev.face_id}</div>
+                <div class="event-time">${ev.time || '—'}</div>
+            </div>
+            <div class="event-badge" style="color:${st.color};background:${st.bg};border:1px solid ${st.color}44;">
+                ${ev.type}
+            </div>
+        </div>`;
+    }).join('');
+
+    const isAtBottom = list.scrollHeight - list.scrollTop <= list.clientHeight + 10;
+    list.innerHTML = html;
+    if (isAtBottom) {
+        list.scrollTop = list.scrollHeight;
+    }
+}
+
+// ── Health check (turns health dot red if FPS = 0 too long) ──────────────
+let zeroFpsTicks = 0;
+function updateHealth(fps) {
+    if (fps === 0) zeroFpsTicks++;
+    else zeroFpsTicks = 0;
+    const camDot = document.getElementById('hc-camera');
+    if (zeroFpsTicks > 6) {
+        camDot.className = 'health-dot err';
+    } else {
+        camDot.className = 'health-dot';
+    }
+}
+
+// ── Poll backend ──────────────────────────────────────────────────────────
+async function poll() {
+    try {
+        const r = await fetch('/api/stats');
+        const d = await r.json();
+
+        targets.fps     = d.fps     || 0;
+        targets.latency = d.latency_ms || 0;
+        targets.session = d.session_count || 0;
+        targets.total   = d.global_count  || 0;
+
+        renderTracks(d.faces  || []);
+        renderEvents(d.events || []);
+        updateHealth(d.fps || 0);
+
+    } catch (e) {
+        // network hiccup — don't crash
+    }
+}
+
+setInterval(poll, 400);   // 400ms = smooth, not jittery
+
+// ── Load Videos ──────────────────────────────────────────────────────────
+async function loadVideos() {
+    try {
+        const res = await fetch("/api/videos");
+        const data = await res.json();
+        const sel = document.getElementById("video-selector");
+        sel.innerHTML = '<option value="0">Live Webcam</option>' + 
+            data.videos.map(v => `<option value="${v}">sample/${v}</option>`).join('');
+        
+        sel.addEventListener("change", async (e) => {
+            const vid = e.target.value;
+            if (vid === "") return;
+            document.getElementById('feed-status').textContent = 'SWITCHING...';
+            await fetch("/api/set_video", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({video: vid})
+            });
+            setTimeout(() => document.getElementById('feed-status').textContent = (vid === '0' ? 'WEBCAM · LIVE' : 'MP4 · STREAMING'), 1000);
+        });
+    } catch (e) {
+        console.error("Failed to load videos:", e);
+    }
+}
+loadVideos();
+</script>
+</body>
+</html>
