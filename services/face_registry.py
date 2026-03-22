@@ -156,9 +156,13 @@ class FaceRegistry:
             self._track_to_face[track_id] = best_id
             self._face_last_seen[best_id] = frame_number
             if best_id not in self._inside_ids:
+                logger.info(f"RE-IDENTIFIED: {best_id} (sim={similarity:.3f}) - Welcome back.")
                 self.event_logger.log_recognition(best_id)
                 self.event_logger.log_entry(best_id, face_crop)
                 self._inside_ids.add(best_id)
+            else:
+                # Track continuity log (optional, but professional)
+                logger.debug(f"Track {track_id} confirmed as {best_id} (sim={similarity:.3f})")
             self._validation_counts.pop(track_id, None)
             return
 
@@ -180,9 +184,12 @@ class FaceRegistry:
                 self.event_logger.log_registration(face_id, face_crop)
                 self.event_logger.log_entry(face_id, face_crop)
                 self._inside_ids.add(face_id)
-                print(f"\n👤 NEW FACE → ID: {face_id}")
-                print(f"📈 Visitors: {self.visitor_counter.count}")
-                logger.info(f"NEW FACE REGISTRATION: track={track_id} -> {face_id} (det_score={avg_q:.3f})")
+                
+                # Professional status logging
+                sys_msg = f"NEW REGISTRATION: {face_id} [Track={track_id}, Quality={avg_q:.2f}]"
+                print(f"\n{sys_msg}")
+                print(f"Total Unique Visitors: {self.visitor_counter.count}")
+                logger.info(sys_msg)
                 self._validation_counts.pop(track_id, None)
 
     def check_exits(self, seen_this_frame: set[int], frame_number: int, exit_threshold: int, frame_getter):

@@ -85,8 +85,8 @@ class FaceEventLogger:
     def _log_event(self, face_id: str, event_type: str, face_crop) -> str | None:
         image_path = None
         if face_crop is not None and face_crop.size > 0:
-            sub = event_type.lower() + "s"  # entries / exits / registereds
-            directory = get_dated_dir(self.log_dir, sub)
+            event_sub = "entries" if event_type.lower() == "entry" else event_type.lower() + "s"
+            directory = get_dated_dir(self.log_dir, event_sub)
             ts = datetime.now().strftime("%H-%M-%S-%f")
             filename = f"{face_id}_{ts}.jpg"
             image_path = save_image(face_crop, directory, filename)

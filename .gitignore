@@ -15,10 +15,6 @@ env/
 # Sample videos (large — download from Drive link in README)
 sample/
 
-# Runtime DB (not sample data)
-# Note: database/ folder with schema is included, runtime .db is excluded
-database/face_tracker.db
-
 # IDE
 .vscode/
 .idea/

@@ -27,6 +27,7 @@ from services.face_registry import FaceRegistry  # type: ignore
 from services.visitor_counter import VisitorCounter  # type: ignore
 
 app = Flask(__name__)
+logger = logging.getLogger(__name__)
 
 # Global state for web sharing
 lock = threading.Lock()
@@ -136,6 +137,10 @@ def tracker_loop():
         frame_number += 1  # type: ignore
         if int(frame_number) % int(frame_skip) != 0:
             continue
+
+        # Periodic status heartbeat (professional requirement)
+        if int(frame_number) % 100 == 0:
+            logger.info(f"System Operational | Frame: {frame_number} | Unique IDs: {len(registry._registered)}")
 
         t_start = float(time.perf_counter())
         tracked_results = tracker.track(frame)
