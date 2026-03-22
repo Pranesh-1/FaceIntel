@@ -459,7 +459,7 @@ The system can be extended to:
 
 ## Demo Video
 
-> Watch the Demo: [YouTube / Loom Link to be added]
+> Watch the Demo: [[YouTube / Loom Link to be added]](https://drive.google.com/file/d/1sLgIA9AzIsygXKDYbLW1Ebs0B0ldazig/view?usp=sharing)
 > *Record and insert link before submission deadline.*
 
 ---
