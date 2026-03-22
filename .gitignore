@@ -12,22 +12,12 @@ env/
 *.onnx
 *.bin
 
-# Sample videos (large)
+# Sample videos (large — download from Drive link in README)
 sample/
 
-# Database (generated at runtime)
+# Runtime DB (not sample data)
+# Note: database/ folder with schema is included, runtime .db is excluded
 database/face_tracker.db
-
-# Logs & generated images (keep folder structure, ignore content)
-logs/events.log
-logs/entries/
-logs/exits/
-logs/registereds/
-logs/entrys/
-out.log
-
-# Scripts (dev utility only)
-scripts/
 
 # IDE
 .vscode/
@@ -36,3 +26,7 @@ scripts/
 # OS
 .DS_Store
 Thumbs.db
+
+# Dev tools
+out.log
+scripts/
